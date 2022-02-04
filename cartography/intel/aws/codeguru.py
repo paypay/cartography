@@ -1,10 +1,7 @@
-import json
 import logging
-import pprint
 from typing import Any
 from typing import Dict
 from typing import List
-from urllib import response
 
 import boto3
 import neo4j
@@ -24,7 +21,9 @@ def get_repository_associations(boto3_session: boto3.session.Session, region: st
     associations: List[Any] = []
     for page in paginator.paginate():
         associations.extend(page.get('RepositoryAssociationSummaries', []))
+
     return associations
+
 
 @timeit
 def get_association_names(associations: List[str]) -> List[str]:
@@ -34,7 +33,13 @@ def get_association_names(associations: List[str]) -> List[str]:
 
     return names
 
-def get_recommendation_feedbacks(boto3_session: boto3.session.Session,region: str,code_reviews: List[str]) -> List[str]:
+
+@timeit
+@aws_handle_regions
+def get_recommendation_feedbacks(
+    boto3_session: boto3.session.Session,
+    region: str, code_reviews: List[str],
+) -> List[Dict[Any, Any]]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
 
     queues: List[Dict] = []
@@ -47,18 +52,24 @@ def get_recommendation_feedbacks(boto3_session: boto3.session.Session,region: st
 
     return queues
 
-@timeit
-@aws_handle_regions
-def get_code_reviews(boto3_session: boto3.session.Session,region: str,association_names: List[str]) -> List[str]:
-    client = boto3_session.client('codeguru-reviewer', region_name=region)
-    response = client.list_code_reviews(States=['Completed'],Type='PullRequest',RepositoryNames=association_names)
-    return response['CodeReviewSummaries']
 
 @timeit
 @aws_handle_regions
-def get_recommendations(boto3_session: boto3.session.Session,region: str,code_reviews: List[str]) -> List[str]:
+def get_code_reviews(boto3_session: boto3.session.Session, region: str, association_names: List[str]) -> List[str]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
-    recommendations: List[Any] = []
+    response = client.list_code_reviews(States=['Completed'], Type='PullRequest', RepositoryNames=association_names)
+    return response['CodeReviewSummaries']
+
+
+@timeit
+@aws_handle_regions
+def get_recommendations(
+    boto3_session: boto3.session.Session,
+    region: str,
+    code_reviews: List[str],
+) -> List[Dict[Any, Any]]:
+    client = boto3_session.client('codeguru-reviewer', region_name=region)
+
     queues: List[Dict] = []
     for cr in code_reviews:
         response = client.list_recommendations(CodeReviewArn=cr['CodeReviewArn'])
@@ -67,6 +78,7 @@ def get_recommendations(boto3_session: boto3.session.Session,region: str,code_re
             queues.append(queue)
 
     return queues
+
 
 @timeit
 def load_repository_associations(
@@ -78,9 +90,9 @@ def load_repository_associations(
 ) -> None:
     cypher = """
     UNWIND {Repos} AS repo
-        MERGE (cga:CodeguruAssociation{associationarn: repo.AssociationArn})
+        MERGE (cga:CodeguruAssociation{id: repo.AssociationArn})
         ON CREATE SET cga.firstseen = timestamp()
-        SET  
+        SET
              cga.associationid = repo.AssociationId,
              cga.name = repo.Name,
              cga.owner = repo.Owner,
@@ -102,6 +114,7 @@ def load_repository_associations(
         aws_update_tag=aws_update_tag,
     )
 
+
 @timeit
 def load_code_reviews(
     neo4j_session: neo4j.Session,
@@ -112,9 +125,9 @@ def load_code_reviews(
 ) -> None:
     cypher = """
     UNWIND {Repos} AS repo
-        MERGE (cgc:CodeguruCodereview{codereviewarn: repo.CodeReviewArn})
+        MERGE (cgc:CodeguruCodereview{id: repo.CodeReviewArn})
         ON CREATE SET cgc.firstseen = timestamp()
-        SET  
+        SET
              cgc.associationarn = repo.AssociationArn,
              cgc.name = repo.Name,
              cgc.owner = repo.Owner,
@@ -125,24 +138,23 @@ def load_code_reviews(
              cgc.type = repo.Type,
              cgc.lastupdated = {aws_update_tag}
         WITH cgc,repo
-        MATCH (cga:CodeguruAssociation{associationarn: repo.AssociationArn})
+        MATCH (cga:CodeguruAssociation{id: repo.AssociationArn})
         MERGE (cga)-[r:HAS_CODEREVIEW]->(cgc)
         ON CREATE SET cgc.firstseen = timestamp()
         SET cgc.lastupdated = {aws_update_tag}
     """
-    queues: List[Dict] = []
-    for queue in data:
-        queue['AssociationArn'] = queue['CodeReviewArn'].split(':code-review:')[0]
-        queue['CodeReviewArn'] = queue['CodeReviewArn']
-        queues.append(queue)
+
+    for i in range(len(data)):
+        data[i]['AssociationArn'] = data[i]['CodeReviewArn'].split(':code-review:')[0]
 
     neo4j_session.run(
         cypher,
-        Repos=queues,
+        Repos=data,
         Region=region,
         AWS_ACCOUNT_ID=current_aws_account_id,
         aws_update_tag=aws_update_tag,
     )
+
 
 @timeit
 def load_recommendations(
@@ -154,9 +166,9 @@ def load_recommendations(
 ) -> None:
     cypher = """
     UNWIND {Repos} AS repo
-        MERGE (cgr:CodeguruRecommendation{recommendationid: repo.RecommendationId})
+        MERGE (cgr:CodeguruRecommendation{id: repo.RecommendationId})
         ON CREATE SET cgr.firstseen = timestamp()
-        SET  
+        SET
              cgr.codereviewarn = repo.CodeReviewArn,
              cgr.description = repo.Description,
              cgr.filepath = repo.FilePath,
@@ -167,7 +179,7 @@ def load_recommendations(
              cgr.endLine = repo.EndLine,
              cgr.lastupdated = {aws_update_tag}
         WITH cgr,repo
-        MATCH (cgc:CodeguruCodereview{codereviewarn: repo.CodeReviewArn})
+        MATCH (cgc:CodeguruCodereview{id: repo.CodeReviewArn})
         MERGE (cgc)-[r:HAS_RECOMMENDATION]->(cgr)
         ON CREATE SET cgr.firstseen = timestamp()
         SET cgr.lastupdated = {aws_update_tag}
@@ -181,6 +193,7 @@ def load_recommendations(
         aws_update_tag=aws_update_tag,
     )
 
+
 @timeit
 def load_recommendation_feedbacks(
     neo4j_session: neo4j.Session,
@@ -191,13 +204,13 @@ def load_recommendation_feedbacks(
 ) -> None:
     cypher = """
     UNWIND {Repos} AS repo
-        MERGE (crf:CodeguruRecommendationFeedback{recommendationid: repo.RecommendationId})
+        MERGE (crf:CodeguruRecommendationFeedback{id: repo.RecommendationId})
         ON CREATE SET crf.firstseen = timestamp()
-        SET  
+        SET
              crf.reactions = repo.Reactions,
              crf.lastupdated = {aws_update_tag}
         WITH crf,repo
-        MATCH (cgr:CodeguruRecommendation{recommendationid: repo.RecommendationId})
+        MATCH (cgr:CodeguruRecommendation{id: repo.RecommendationId})
         MERGE (cgr)-[r:HAS_RECOMMENDATION_FEEDBACK]->(crf)
         ON CREATE SET crf.firstseen = timestamp()
         SET crf.lastupdated = {aws_update_tag}
@@ -211,13 +224,16 @@ def load_recommendation_feedbacks(
         aws_update_tag=aws_update_tag,
     )
 
+
 @timeit
 def cleanup_codeguru_associations(neo4j_session: neo4j.Session, common_job_parameters: Dict) -> None:
     run_cleanup_job('aws_import_codeguru_associations_cleanup.json', neo4j_session, common_job_parameters)
 
+
 @timeit
 def cleanup_codeguru_codereviews(neo4j_session: neo4j.Session, common_job_parameters: Dict) -> None:
     run_cleanup_job('aws_import_codeguru_codereviews_cleanup.json', neo4j_session, common_job_parameters)
+
 
 @timeit
 def sync(
@@ -242,7 +258,7 @@ def sync(
         recommendations = get_recommendations(boto3_session, region, code_reviews)
         load_recommendations(neo4j_session, recommendations, region, current_aws_account_id, update_tag)
 
-        codereview_arns=get_recommendation_feedbacks(boto3_session, region, code_reviews)
+        codereview_arns = get_recommendation_feedbacks(boto3_session, region, code_reviews)
         load_recommendation_feedbacks(neo4j_session, codereview_arns, region, current_aws_account_id, update_tag)
 
         cleanup_codeguru_codereviews(neo4j_session, common_job_parameters)
