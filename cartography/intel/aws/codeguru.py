@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @timeit
 @aws_handle_regions
-def get_repository_associations(boto3_session: boto3.session.Session, region: str) -> List[str]:
+def get_repository_associations(boto3_session: boto3.session.Session, region: str) -> List[Dict]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
     paginator = client.get_paginator('list_repository_associations')
     associations: List[Any] = []
@@ -26,7 +26,7 @@ def get_repository_associations(boto3_session: boto3.session.Session, region: st
 
 
 @timeit
-def get_association_names(associations: List[str]) -> List[str]:
+def get_association_names(associations: List[Dict]) -> List[str]:
     names: List[Any] = []
     for assoc in associations:
         names.append(assoc['Name'])
@@ -38,7 +38,7 @@ def get_association_names(associations: List[str]) -> List[str]:
 @aws_handle_regions
 def get_recommendation_feedbacks(
     boto3_session: boto3.session.Session,
-    region: str, code_reviews: List[str],
+    region: str, code_reviews: List[Dict],
 ) -> List[Dict[Any, Any]]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
 
@@ -55,7 +55,7 @@ def get_recommendation_feedbacks(
 
 @timeit
 @aws_handle_regions
-def get_code_reviews(boto3_session: boto3.session.Session, region: str, association_names: List[str]) -> List[str]:
+def get_code_reviews(boto3_session: boto3.session.Session, region: str, association_names: List[str]) -> List[Dict]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
     response = client.list_code_reviews(States=['Completed'], Type='PullRequest', RepositoryNames=association_names)
     return response['CodeReviewSummaries']
@@ -66,7 +66,7 @@ def get_code_reviews(boto3_session: boto3.session.Session, region: str, associat
 def get_recommendations(
     boto3_session: boto3.session.Session,
     region: str,
-    code_reviews: List[str],
+    code_reviews: List[Dict],
 ) -> List[Dict[Any, Any]]:
     client = boto3_session.client('codeguru-reviewer', region_name=region)
 
