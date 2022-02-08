@@ -30,6 +30,7 @@ def test_load_repository_associations(neo4j_session):
 
     assert actual_nodes == expected_nodes
 
+
 def test_load_repository_associations_relationships(neo4j_session):
     # Create Test AWSAccount
     neo4j_session.run(
