@@ -258,8 +258,14 @@ def sync(
         recommendations = get_recommendations(boto3_session, region, code_reviews)
         load_recommendations(neo4j_session, recommendations, region, current_aws_account_id, update_tag)
 
-        codereview_arns = get_recommendation_feedbacks(boto3_session, region, code_reviews)
-        load_recommendation_feedbacks(neo4j_session, codereview_arns, region, current_aws_account_id, update_tag)
+        recommendation_feedbacks = get_recommendation_feedbacks(boto3_session, region, code_reviews)
+        load_recommendation_feedbacks(
+            neo4j_session,
+            recommendation_feedbacks,
+            region,
+            current_aws_account_id,
+            update_tag,
+        )
 
         cleanup_codeguru_codereviews(neo4j_session, common_job_parameters)
         cleanup_codeguru_associations(neo4j_session, common_job_parameters)

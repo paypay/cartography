@@ -9,7 +9,7 @@ GET_REPOSITORY_ASSOCIATIONS = [
         'Name': 'string',
         'Owner': 'test-001',
         'ProviderType': 'GitHub',
-        'State': 'Associated'
+        'State': 'Associated',
     },
     {
         'AssociationArn': '002',
@@ -19,7 +19,6 @@ GET_REPOSITORY_ASSOCIATIONS = [
         'Name': 'string',
         'Owner': 'test-002',
         'ProviderType': 'GitHub',
-        'State': 'Associated'
+        'State': 'Associated',
     },
 ]
-
