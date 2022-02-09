@@ -2856,6 +2856,7 @@ Representation of an AWS CODEGURU [Repository Association](https://docs.aws.amaz
 | name |  The name of the repository |
 | **id** | The Amazon Resource Name (ARN) identifying the repository association |
 | state | The state of the repository association |
+| providertype | The provider type of the repository |
 
 ### Relationships
 
@@ -2911,7 +2912,8 @@ Representation of an AWS CODEGURU RECOMMENDATION [RecommendationSummary](https:/
 | endLine | Last line where the recommendation is applicable in the source commit or source branch |
 | filepath | Name of the file on which a recommendation is provided |
 | recommendationcategory | The type of a recommendation |
-| **id** | The recommendation ID that can be used to track the provided recommendations |
+| recommendationid | The recommendation ID that can be used to track the provided recommendations |
+| **id** | ID is the combination of RecommendationId and CodeReviewArn |
 | codereviewarn | The Amazon Resource Name (ARN) of the CodeReview object |
 
 ### Relationships
