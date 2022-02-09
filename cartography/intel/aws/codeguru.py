@@ -166,7 +166,7 @@ def load_recommendations(
 ) -> None:
     cypher = """
     UNWIND {Repos} AS repo
-        MERGE (cgr:CodeguruRecommendation{id: repo.RecommendationId})
+        MERGE (cgr:CodeguruRecommendation{id: repo.RecommendationId + COALESCE(":" + repo.CodeReviewArn, '')})
         ON CREATE SET cgr.firstseen = timestamp()
         SET
              cgr.codereviewarn = repo.CodeReviewArn,
@@ -184,7 +184,6 @@ def load_recommendations(
         ON CREATE SET cgr.firstseen = timestamp()
         SET cgr.lastupdated = {aws_update_tag}
     """
-
     neo4j_session.run(
         cypher,
         Repos=data,
