@@ -17,9 +17,6 @@ from cartography.util import timeit
 
 logger = logging.getLogger(__name__)
 
-# (ryan-lane): To workaround a bug in the graphql API (see:
-# https://github.community/t/user-node-is-null-if-email-is-private-or-unset/179323)
-# email has been removed from the collaborators->nodes portion of this query
 GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
     query($login: String!, $cursor: String) {
     organization(login: $login)
@@ -70,6 +67,7 @@ GITHUB_ORG_REPOS_PAGINATED_GRAPHQL = """
                             url
                             login
                             name
+                            email
                             company
                         }
                     }

@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 stat_handler = get_stats_client(__name__)
 
 
-# (ryan-lane): To workaround a bug in the graphql API (see:
-# https://github.community/t/user-node-is-null-if-email-is-private-or-unset/179323)
-# email has been removed from the node portion of this query
 GITHUB_ORG_USERS_PAGINATED_GRAPHQL = """
     query($login: String!, $cursor: String) {
     organization(login: $login)
@@ -32,6 +29,7 @@ GITHUB_ORG_USERS_PAGINATED_GRAPHQL = """
                         login
                         name
                         isSiteAdmin
+                        email
                         company
                     }
                     role
