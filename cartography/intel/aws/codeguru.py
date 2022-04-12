@@ -48,10 +48,7 @@ def get_recommendation_feedbacks(
     queues: List[Dict] = []
     for cr in code_reviews:
         response = client.list_recommendation_feedback(CodeReviewArn=cr['CodeReviewArn'])
-        for queue in response['RecommendationFeedbackSummaries']:
-            queue['Reactions'] = queue['Reactions'][0]
-            queue['RecommendationId'] = queue['RecommendationId']
-            queues.append(queue)
+        queues.extend(response['RecommendationFeedbackSummaries'])
 
     return queues
 
@@ -249,7 +246,6 @@ def sync(
         associations = get_repository_associations(boto3_session, region)
         if len(associations) == 0:
             continue
-        logger.info(associations)
         association_names = get_association_names(associations)
 
         load_repository_associations(neo4j_session, associations, region, current_aws_account_id, update_tag)
