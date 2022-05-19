@@ -180,7 +180,7 @@ def load_autodiscovery_aws_accounts(
         MERGE (aa:AWSAccount{id: account.Id})
         ON CREATE SET aa.firstseen = timestamp()
         SET aa.lastupdated = {aws_update_tag},
-            aa.name = account.Name
+            aa.name = account.Name,
             aa.arn = account.Arn,
             aa.email = account.Email,
             aa.status = account.Status,
