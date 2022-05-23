@@ -187,7 +187,7 @@ def load_autodiscovery_aws_accounts(
             aa.joined_method = account.JoinedMethod,
             aa.joined_timestamp = account.JoinedTimestamp
         WITH aa
-        MERGE (root:AWSPrincipal{arn: 'arn:aws:iam::'+account.Id+':root'})
+        MERGE (root:AWSPrincipal{arn: 'arn:aws:iam::'+aa.id+':root'})
         ON CREATE SET root.firstseen = timestamp(), root.type = 'AWS'
         SET root.lastupdated = {aws_update_tag}
         WITH aa, root
