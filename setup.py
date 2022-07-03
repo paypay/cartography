@@ -1,7 +1,7 @@
 from setuptools import find_packages
 from setuptools import setup
 
-__version__ = '0.56.0rc1'
+__version__ = '0.62.0'
 
 
 setup(
@@ -14,6 +14,7 @@ setup(
     license='apache2',
     packages=find_packages(exclude=['tests*']),
     package_data={
+        'cartography': ['py.typed'],
         'cartography.data': [
             '*.cypher',
             '*.yaml',

@@ -13,7 +13,7 @@ from . import organizations
 from .resources import RESOURCE_FUNCTIONS
 from cartography.config import Config
 from cartography.intel.aws.util.common import parse_and_validate_aws_requested_syncs
-from cartography.util import get_stats_client
+from cartography.stats import get_stats_client
 from cartography.util import merge_module_sync_metadata
 from cartography.util import run_analysis_job
 from cartography.util import run_cleanup_job
@@ -62,9 +62,6 @@ def _sync_one_account(
                 continue
         else:
             raise ValueError(f'AWS sync function "{func_name}" was specified but does not exist. Did you misspell it?')
-
-    # NOTE clean up all DNS records, regardless of which job created them
-    run_cleanup_job('aws_account_dns_cleanup.json', neo4j_session, common_job_parameters)
 
     # MAP IAM permissions
     if 'permission_relationships' in aws_requested_syncs:
@@ -168,10 +165,6 @@ def _sync_multiple_accounts(
     # There may be orphan Principals which point outside of known AWS accounts. This job cleans
     # up those nodes after all AWS accounts have been synced.
     run_cleanup_job('aws_post_ingestion_principals_cleanup.json', neo4j_session, common_job_parameters)
-
-    # There may be orphan DNS entries that point outside of known AWS zones. This job cleans
-    # up those entries after all AWS accounts have been synced.
-    run_cleanup_job('aws_post_ingestion_dns_cleanup.json', neo4j_session, common_job_parameters)
 
 
 @timeit
